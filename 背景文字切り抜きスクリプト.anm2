@@ -1,0 +1,70 @@
+--track@text_size:テキストサイズ,0,1000,200,1
+--track@text_posx:テキスト位置X,-100000,100000,0,1
+--track@text_posy:テキスト位置Y,-100000,100000,0,1
+--font@font:フォント名,MS UI Gothic
+--text@txt:テキスト,デフォルト文字
+--color@bg_col:背景色,0xffffff
+--check@alpha_reverse:透明箇所を反転,0
+--group:透明反転時の領域調整,false
+--track@bg_region:背景サイズ,0,1000,0,1
+--track@bg_region_tb:背景上下,0,1000,300,1
+--track@bg_region_lr:背景左右,0,1000,600,1
+--track@bg_region_t:背景上,0,1000,0,1
+--track@bg_region_b:背景下,0,1000,0,1
+--track@bg_region_l:背景左,0,1000,0,1
+--track@bg_region_r:背景右,0,1000,0,1
+--group
+--check@grd_enable:グラデーションを適用,0
+--group:グラデーション適用時の数値調整,false
+--color@grd_start_col:グラデ開始色,0xc81e1e
+--color@grd_end_col:グラデ終了色,0x460a0a
+--track@grd_pow:グラデ強さ,0,100,100,0.1
+--track@grd_x:グラデ中心X,-5000,5000,0,0.1
+--track@grd_y:グラデ中心Y,-5000,5000,300,0.1
+--track@grd_rotate:グラデ角度,-3600,3600,0,0.01
+--track@grd_width:グラデ幅,0,2000,100,1
+--select@grd_type:グラデ形状=1,線形=1,円形=2,矩形=3,凸形=4
+--select@grd_composite:グラデ合成モード=1,通常=1,加算=2,減算=3,乗算=4,スクリーン=5,オーバーレイ=6,比較(明)=7,比較(暗)=8,輝度=9,色差=10,陰影=11,明暗=12,差分=13
+--group
+
+-- 1. 仮想バッファを初期化
+obj.setoption("drawtarget", "tempbuffer", obj.screen_w, obj.screen_h) 
+
+-- 2. 背景を作成
+obj.load("figure", "背景", bg_col, 1)
+
+-- グラデーション
+if grd_enable ~= 0 then
+    local GRD_TYPES = { "線形", "円形", "矩形", "凸形" }
+    local GRD_COMPOSITES = { "通常", "加算", "減算", "乗算", "スクリーン", "オーバーレイ", "比較(明)", "比較(暗)", "輝度", "色差", "陰影", "明暗", "差分" }
+    local g_type = GRD_COMPOSITES[grd_type]
+    local g_comp = GRD_TYPES[grd_type]
+
+    obj.effect("グラデーション",
+                "強さ", grd_pow,
+                "中心X", grd_x,
+                "中心Y", grd_y,
+                "角度", grd_rotate,
+                "幅", grd_width,
+                "合成モード", g_comp,
+                "形状", g_type,
+                "開始色", grd_start_col,
+                "終了色", grd_end_col
+            )
+end
+
+obj.draw()
+
+-- 3. alpha_sub で「テキスト」を重ねる
+--「テキスト」が「背景」から透過される
+obj.setoption("blend", "alpha_sub")
+local type = 0
+obj.setfont(font, text_size,type)
+obj.load("text", txt)
+-- 「透明箇所を反転」のcheckがONの時のみ下記を実行
+if alpha_reverse ~= 0 then
+    obj.effect("領域拡張","上",bg_region_t + bg_region_tb + bg_region,"下",bg_region + bg_region_b + bg_region_tb,"左",bg_region + bg_region_l + bg_region_lr,"右",bg_region + bg_region_r + bg_region_lr)
+    obj.effect("反転","透明度反転",1)
+end
+obj.draw(text_posx,text_posy)
+obj.load("tempbuffer")
